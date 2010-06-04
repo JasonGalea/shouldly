@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
 using System.Linq.Expressions;
 using NUnit.Framework;
@@ -28,6 +27,29 @@ namespace Shouldly
 
                 throw new AssertionException(string.Format(
 @"*Expecting*
+    {0}
+*Recorded*
+{1}", expectedCall, recordedCalls.Select((c, i) => string.Format(@"{0: 0}: {1}", i, c)).DelimitWith("\n")));
+            }
+        }
+
+        public static void ShouldNotHaveBeenCalled<T>(this T mock, Expression<Action<T>> action)
+        {
+            try
+            {
+                mock.AssertWasNotCalled(action.Compile());
+            }
+            catch (ExpectationViolationException)
+            {
+                var methodCalls = mock.GetArgumentsForCallsMadeOn(action.Compile());
+
+                var body = action.Body.As<MethodCallExpression>();
+
+                var expectedCall = MethodCall(body.Method.Name, body.Arguments.Cast<object>());
+                var recordedCalls = methodCalls.Select(args => MethodCall(body.Method.Name, args));
+
+                throw new AssertionException(string.Format(
+@"*Not Expecting*
     {0}
 *Recorded*
 {1}", expectedCall, recordedCalls.Select((c, i) => string.Format(@"{0: 0}: {1}", i, c)).DelimitWith("\n")));
